@@ -26,8 +26,8 @@ export function setupScene() {
     dirLight.shadow.camera.bottom = -100;
     dirLight.shadow.camera.left = -100;
     dirLight.shadow.camera.right = 100;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
     return { scene, camera };

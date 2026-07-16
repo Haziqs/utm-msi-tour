@@ -20,15 +20,164 @@
         cursor: pointer;
         z-index: 10;
       }
+      #welcome-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.75);
+        color: white;
+        font-family: sans-serif;
+        transition: opacity 1s;
+      }
+      #welcome-screen h1 { font-size: 3rem; margin: 0; }
+      #welcome-screen p { font-size: 1.2rem; margin: 0.5rem 0; }
+      #welcome-screen .sub { font-size: 1rem; color: #aaa; margin: 1rem 0; }
+      #start-btn {
+        padding: 12px 36px;
+        font-size: 1.2rem;
+        border: none;
+        border-radius: 8px;
+        background: #4CAF50;
+        color: white;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      #start-btn:hover { background: #45a049; }
+      #info-panel {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 30;
+        background: rgba(0,0,0,0.85);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 500px;
+        display: none;
+        font-family: sans-serif;
+        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(8px);
+      }
+      #close-info {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      #close-info:hover { color: white; }
+      #info-title { margin: 0 0 8px 0; }
+      #info-description { margin: 0; color: #ccc; line-height: 1.6; }
+
+      /* HELP OVERLAY */
+      #help-overlay {
+        position: absolute;
+        bottom: 80px;
+        right: 20px;
+        z-index: 25;
+        background: rgba(0,0,0,0.85);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-family: sans-serif;
+        font-size: 0.85rem;
+        display: none;
+        border: 1px solid rgba(255,255,255,0.1);
+        min-width: 200px;
+        backdrop-filter: blur(8px);
+        pointer-events: none;
+      }
+      #help-overlay h4 { margin: 0 0 8px 0; }
+      #help-overlay p { margin: 3px 0; }
+      #help-overlay kbd {
+        background: rgba(255,255,255,0.15);
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(255,255,255,0.15);
+      }
+
+      @media (max-width: 600px) {
+        #welcome-screen h1 { font-size: 2rem; }
+        #welcome-screen p { font-size: 1rem; }
+        #start-btn { padding: 10px 24px; font-size: 1rem; }
+        #info-panel { padding: 15px 20px; width: 90%; }
+        #help-overlay { font-size: 0.75rem; padding: 12px 16px; min-width: 160px; bottom: 70px; right: 10px; }
+      }
     </style>
   </head>
   <body>
+    <!-- BLOCKER OVERLAY -->
     <div id="blocker">
       <div id="instructions">
-        <p style="font-size:36px;text-align:center">Click to play</p>
-        <p style="text-align:center">WASD = Move | MOUSE = Look around</p>
+        <p style="font-size:36px;text-align:center;">Click to play</p>
+        <p style="text-align:center;">
+          WASD = Move &nbsp;|&nbsp; MOUSE = Look &nbsp;|&nbsp; SPACE = Up &nbsp;|&nbsp; SHIFT = Down &nbsp;|&nbsp; Q = Sprint
+        </p>
+        <p style="text-align:center;font-size:0.9rem;color:#aaa;margin-top:4px;">
+          Click hotspots for info · Press <kbd>L</kbd> lighting · <kbd>R</kbd> reset · <kbd>H</kbd> help
+        </p>
       </div>
     </div>
+
+    <!-- WELCOME SCREEN -->
+    <div id="welcome-screen">
+      <h1>🕌 UTM MSI Tour</h1>
+      <p>Interactive 3D Campus Tour</p>
+      <p class="sub">WASD = Move &nbsp;·&nbsp; Mouse = Look &nbsp;·&nbsp; Click hotspots for info</p>
+      <button id="start-btn">Start Tour</button>
+    </div>
+
+    <!-- INFO POP-UP PANEL -->
+    <div id="info-panel">
+      <button id="close-info">&times;</button>
+      <h3 id="info-title">Title</h3>
+      <p id="info-description">Description</p>
+    </div>
+
+    <!-- HELP OVERLAY -->
+    <div id="help-overlay">
+      <h4>🎮 Controls</h4>
+      <p><kbd>W A S D</kbd> Move</p>
+      <p><kbd>Mouse</kbd> Look around</p>
+      <p><kbd>Space</kbd> Fly up</p>
+      <p><kbd>Shift</kbd> Fly down</p>
+      <p><kbd>Q</kbd> Sprint</p>
+      <p><kbd>L</kbd> Toggle lighting</p>
+      <p><kbd>R</kbd> Reset position</p>
+      <p><kbd>H</kbd> Toggle this help</p>
+      <p style="color:#aaa;font-size:0.75rem;margin-top:4px;">Click hotspots for info</p>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
+
+    <script>
+      // Welcome screen → Start Tour
+      document.getElementById('start-btn').addEventListener('click', () => {
+        document.getElementById('welcome-screen').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('welcome-screen').style.display = 'none';
+          if (window.__controls) {
+            window.__controls.lock();
+          } else {
+            document.querySelector('#blocker').click();
+          }
+        }, 500);
+      });
+
+      // Close info panel
+      document.getElementById('close-info').addEventListener('click', () => {
+        document.getElementById('info-panel').style.display = 'none';
+      });
+    </script>
   </body>
 </html>
