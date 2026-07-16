@@ -1,6 +1,6 @@
 /**
  * FILE: src/controls/movement.js
- * PURPOSE: First-person WASD + mouse with SPACE (UP), SHIFT (DOWN), and CTRL (SPRINT).
+ * PURPOSE: First-person WASD + mouse with SPACE (UP), SHIFT (DOWN), and Q (SPRINT).
  * STYLE: Minecraft creative mode — no gravity, free floating.
  */
 
@@ -74,8 +74,7 @@ export function setupMovement(camera, domElement) {
             case 'ShiftRight':
                 moveDown = true;
                 break;
-            case 'ControlLeft':
-            case 'ControlRight':
+            case 'KeyQ':
                 isSprinting = true;
                 break;
         }
@@ -106,8 +105,7 @@ export function setupMovement(camera, domElement) {
             case 'ShiftRight':
                 moveDown = false;
                 break;
-            case 'ControlLeft':
-            case 'ControlRight':
+            case 'KeyQ':
                 isSprinting = false;
                 break;
         }
