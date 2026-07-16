@@ -20,48 +20,125 @@
         cursor: pointer;
         z-index: 10;
       }
+      #welcome-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.75);
+        color: white;
+        font-family: sans-serif;
+        transition: opacity 1s;
+      }
+      #welcome-screen h1 { font-size: 3rem; margin: 0; }
+      #welcome-screen p { font-size: 1.2rem; margin: 0.5rem 0; }
+      #welcome-screen .sub { font-size: 1rem; color: #aaa; margin: 1rem 0; }
+      #start-btn {
+        padding: 12px 36px;
+        font-size: 1.2rem;
+        border: none;
+        border-radius: 8px;
+        background: #4CAF50;
+        color: white;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      #start-btn:hover { background: #45a049; }
+      #info-panel {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 30;
+        background: rgba(0,0,0,0.85);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 500px;
+        display: none;
+        font-family: sans-serif;
+        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(8px);
+      }
+      #close-info {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      #close-info:hover { color: white; }
+      #info-title { margin: 0 0 8px 0; }
+      #info-description { margin: 0; color: #ccc; line-height: 1.6; }
+      kbd {
+        background: rgba(255,255,255,0.15);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        border: 1px solid rgba(255,255,255,0.2);
+      }
+      @media (max-width: 600px) {
+        #welcome-screen h1 { font-size: 2rem; }
+        #welcome-screen p { font-size: 1rem; }
+        #start-btn { padding: 10px 24px; font-size: 1rem; }
+        #info-panel { padding: 15px 20px; width: 90%; }
+      }
     </style>
   </head>
   <body>
+    <!-- BLOCKER OVERLAY -->
     <div id="blocker">
       <div id="instructions">
-        <p style="font-size:36px;text-align:center">Click to play</p>
-        <p style="text-align:center">WASD = Move | MOUSE = Look around | Click hotspots for info | Press <kbd>L</kbd> for lighting toggle</p>
+        <p style="font-size:36px;text-align:center;">Click to play</p>
+        <p style="text-align:center;">
+          WASD = Move &nbsp;|&nbsp; MOUSE = Look around &nbsp;|&nbsp; Click hotspots for info &nbsp;|&nbsp; Press <kbd>L</kbd> for lighting toggle
+        </p>
       </div>
     </div>
 
-    <!-- Welcome screen -->
-    <div id="welcome-screen" style="position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:white;font-family:sans-serif;transition:opacity 1s;">
-      <h1 style="font-size:3rem;margin:0;">🕌 UTM MSI Tour</h1>
-      <p style="font-size:1.2rem;margin:0.5rem 0;">Interactive 3D Campus Tour</p>
-      <p style="font-size:1rem;color:#aaa;margin:1rem 0;">WASD = Move · Mouse = Look · Click hotspots for info</p>
-      <button id="start-btn" style="padding:12px 36px;font-size:1.2rem;border:none;border-radius:8px;background:#4CAF50;color:white;cursor:pointer;">Start Tour</button>
+    <!-- WELCOME SCREEN -->
+    <div id="welcome-screen">
+      <h1>🕌 UTM MSI Tour</h1>
+      <p>Interactive 3D Campus Tour</p>
+      <p class="sub">WASD = Move &nbsp;·&nbsp; Mouse = Look &nbsp;·&nbsp; Click hotspots for info</p>
+      <button id="start-btn">Start Tour</button>
     </div>
 
-    <!-- Info pop-up panel -->
-    <div id="info-panel" style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,0.85);color:white;padding:20px 30px;border-radius:12px;width:80%;max-width:500px;display:none;font-family:sans-serif;border:1px solid rgba(255,255,255,0.1);">
-      <button id="close-info" style="position:absolute;top:8px;right:12px;background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">&times;</button>
-      <h3 id="info-title" style="margin:0 0 8px 0;">Title</h3>
-      <p id="info-description" style="margin:0;color:#ccc;line-height:1.6;">Description</p>
+    <!-- INFO POP-UP PANEL -->
+    <div id="info-panel">
+      <button id="close-info">&times;</button>
+      <h3 id="info-title">Title</h3>
+      <p id="info-description">Description</p>
     </div>
 
-    <!-- ==== JAVASCRIPT ==== -->
     <script type="module" src="/src/main.js"></script>
+
     <script>
+      // Welcome screen → Start Tour
       document.getElementById('start-btn').addEventListener('click', () => {
-      document.getElementById('welcome-screen').style.opacity = '0';
-      setTimeout(() => {
-        document.getElementById('welcome-screen').style.display = 'none';
-        // Lock controls
-        document.querySelector('#blocker').click();
-      }, 500);
-    });
-    </script>
-    <script>
+        document.getElementById('welcome-screen').style.opacity = '0';
+        setTimeout(() => {
+          document.getElementById('welcome-screen').style.display = 'none';
+          // Try to lock via exposed controls first
+          if (window.__controls) {
+            window.__controls.lock();
+          } else {
+            document.querySelector('#blocker').click();
+          }
+        }, 500);
+      });
+
+      // Close info panel
       document.getElementById('close-info').addEventListener('click', () => {
-          document.getElementById('info-panel').style.display = 'none';
+        document.getElementById('info-panel').style.display = 'none';
       });
     </script>
-
   </body>
 </html>

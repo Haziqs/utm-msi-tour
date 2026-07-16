@@ -7,8 +7,8 @@ import * as THREE from 'three';
 import { setupScene } from './core/scene.js';
 import { setupTerrain } from './environment/terrain.js';
 import { setupMovement, updateMovement } from './controls/movement.js';
-import { loadModel } from './core/loaders.js';  // ✅ ADDED
-import { setupHotspots } from './interactions/hotspots.js';  // ✅ ADDED
+import { loadModel } from './core/loaders.js';
+import { setupHotspots } from './interactions/hotspots.js';
 
 // Setup renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -38,23 +38,21 @@ loadModel(
         scene.add(mosqueModel);
         console.log('✅ Mosque model loaded successfully!');
 
-        // --- Setup hotspots AFTER model loads ---
+        // Setup hotspots after model loads
         const { addHotspot, clickableObjects } = setupHotspots(
             scene,
             camera,
             renderer,
             (info) => {
-                // Show info pop-up
                 document.getElementById('info-title').textContent = info.title;
                 document.getElementById('info-description').textContent = info.description;
                 document.getElementById('info-panel').style.display = 'block';
             }
         );
 
-        // Find and add hotspots inside the model
+        // Find hotspots inside the model
         mosqueModel.traverse((child) => {
             if (child.isMesh) {
-                // Check if this mesh is a hotspot by name
                 const name = child.name.toLowerCase();
                 if (name.includes('mimbar')) {
                     addHotspot(child, {
@@ -88,7 +86,13 @@ loadModel(
         console.log('✅ Hotspots setup complete!');
     },
     undefined,
-    (error) => console.error('❌ Error loading model:', error)
+    (error) => {
+        console.error('❌ Error loading model:', error);
+        // Show a fallback message
+        document.getElementById('info-title').textContent = '⚠️ Model Not Loaded';
+        document.getElementById('info-description').textContent = 'The mosque model could not be loaded. Please check that masjidMSI.glb exists in public/models/.';
+        document.getElementById('info-panel').style.display = 'block';
+    }
 );
 
 // ---- LIGHTING TOGGLE ----

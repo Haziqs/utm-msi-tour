@@ -1,7 +1,6 @@
 /**
  * FILE: src/controls/movement.js
  * PURPOSE: Implements PointerLockControls for first-person WASD + mouse movement.
- * NOTE: Anyone can edit — roger in the group chat before pushing to main.
  */
 
 import * as THREE from 'three';
@@ -17,17 +16,27 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const speed = 40.0;
 const height = 1.6;
-
-// Basic boundary for the 500x500 ground plane (centered at 0,0)
-const BOUNDARY = 240; 
+const BOUNDARY = 240;
 
 export function setupMovement(camera, domElement) {
     controls = new PointerLockControls(camera, domElement);
+    window.__controls = controls; // EXPOSE GLOBALLY
 
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
+    if (!blocker || !instructions) {
+        console.warn('⚠️ Blocker or instructions element not found!');
+        return controls;
+    }
+
+    // Click instructions to lock
     instructions.addEventListener('click', () => {
+        controls.lock();
+    });
+
+    // Click blocker directly (fallback)
+    blocker.addEventListener('click', () => {
         controls.lock();
     });
 
@@ -41,6 +50,7 @@ export function setupMovement(camera, domElement) {
         instructions.style.display = '';
     });
 
+    // Keyboard controls
     const onKeyDown = (event) => {
         switch (event.code) {
             case 'ArrowUp':
@@ -92,7 +102,6 @@ export function setupMovement(camera, domElement) {
 export function updateMovement(delta, camera) {
     if (!controls || !controls.isLocked) return;
 
-    // Apply damping
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
@@ -106,10 +115,9 @@ export function updateMovement(delta, camera) {
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    // Keep camera at fixed height (no jumping implemented)
     camera.position.y = height;
 
-    // Simple bounds checking
+    // Boundary check
     if (camera.position.x > BOUNDARY) camera.position.x = BOUNDARY;
     if (camera.position.x < -BOUNDARY) camera.position.x = -BOUNDARY;
     if (camera.position.z > BOUNDARY) camera.position.z = BOUNDARY;
