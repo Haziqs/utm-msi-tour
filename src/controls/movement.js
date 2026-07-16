@@ -1,6 +1,7 @@
 /**
  * FILE: src/controls/movement.js
- * PURPOSE: Implements PointerLockControls for first-person WASD + mouse movement.
+ * PURPOSE: First-person WASD + mouse with SPACE (UP), SHIFT (DOWN), and CTRL (SPRINT).
+ * STYLE: Minecraft creative mode — no gravity, free floating.
  */
 
 import * as THREE from 'three';
@@ -11,16 +12,20 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
+let moveUp = false;
+let moveDown = false;
+let isSprinting = false;
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const speed = 40.0;
-const height = 1.6;
+const baseSpeed = 40.0;
+const sprintMultiplier = 2.8;
+const verticalSpeed = 20.0;
 const BOUNDARY = 240;
 
 export function setupMovement(camera, domElement) {
     controls = new PointerLockControls(camera, domElement);
-    window.__controls = controls; // EXPOSE GLOBALLY
+    window.__controls = controls;
 
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
@@ -30,15 +35,8 @@ export function setupMovement(camera, domElement) {
         return controls;
     }
 
-    // Click instructions to lock
-    instructions.addEventListener('click', () => {
-        controls.lock();
-    });
-
-    // Click blocker directly (fallback)
-    blocker.addEventListener('click', () => {
-        controls.lock();
-    });
+    instructions.addEventListener('click', () => controls.lock());
+    blocker.addEventListener('click', () => controls.lock());
 
     controls.addEventListener('lock', () => {
         instructions.style.display = 'none';
@@ -50,7 +48,6 @@ export function setupMovement(camera, domElement) {
         instructions.style.display = '';
     });
 
-    // Keyboard controls
     const onKeyDown = (event) => {
         switch (event.code) {
             case 'ArrowUp':
@@ -68,6 +65,18 @@ export function setupMovement(camera, domElement) {
             case 'ArrowRight':
             case 'KeyD':
                 moveRight = true;
+                break;
+            case 'Space':
+                moveUp = true;
+                event.preventDefault();
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                moveDown = true;
+                break;
+            case 'ControlLeft':
+            case 'ControlRight':
+                isSprinting = true;
                 break;
         }
     };
@@ -90,6 +99,17 @@ export function setupMovement(camera, domElement) {
             case 'KeyD':
                 moveRight = false;
                 break;
+            case 'Space':
+                moveUp = false;
+                break;
+            case 'ShiftLeft':
+            case 'ShiftRight':
+                moveDown = false;
+                break;
+            case 'ControlLeft':
+            case 'ControlRight':
+                isSprinting = false;
+                break;
         }
     };
 
@@ -102,6 +122,10 @@ export function setupMovement(camera, domElement) {
 export function updateMovement(delta, camera) {
     if (!controls || !controls.isLocked) return;
 
+    // Determine current speed (with sprint)
+    const currentSpeed = isSprinting ? baseSpeed * sprintMultiplier : baseSpeed;
+
+    // Horizontal movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
@@ -109,15 +133,21 @@ export function updateMovement(delta, camera) {
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+    if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    camera.position.y = height;
+    // Vertical movement (SPACE = UP, SHIFT = DOWN) — No gravity
+    if (moveUp) {
+        camera.position.y += verticalSpeed * delta;
+    }
+    if (moveDown) {
+        camera.position.y -= verticalSpeed * delta;
+    }
 
-    // Boundary check
+    // Boundary check (X and Z only — Y is free)
     if (camera.position.x > BOUNDARY) camera.position.x = BOUNDARY;
     if (camera.position.x < -BOUNDARY) camera.position.x = -BOUNDARY;
     if (camera.position.z > BOUNDARY) camera.position.z = BOUNDARY;

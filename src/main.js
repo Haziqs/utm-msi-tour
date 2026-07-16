@@ -38,7 +38,6 @@ loadModel(
         scene.add(mosqueModel);
         console.log('✅ Mosque model loaded successfully!');
 
-        // Setup hotspots after model loads
         const { addHotspot, clickableObjects } = setupHotspots(
             scene,
             camera,
@@ -50,7 +49,6 @@ loadModel(
             }
         );
 
-        // Find hotspots inside the model
         mosqueModel.traverse((child) => {
             if (child.isMesh) {
                 const name = child.name.toLowerCase();
@@ -88,16 +86,15 @@ loadModel(
     undefined,
     (error) => {
         console.error('❌ Error loading model:', error);
-        // Show a fallback message
         document.getElementById('info-title').textContent = '⚠️ Model Not Loaded';
         document.getElementById('info-description').textContent = 'The mosque model could not be loaded. Please check that masjidMSI.glb exists in public/models/.';
         document.getElementById('info-panel').style.display = 'block';
     }
 );
 
-// ---- LIGHTING TOGGLE ----
-let isDay = true;
+// ---- KEYBOARD SHORTCUTS ----
 document.addEventListener('keydown', (e) => {
+    // L = Lighting toggle
     if (e.key === 'l' || e.key === 'L') {
         isDay = !isDay;
         const ambient = scene.children.find(c => c.isAmbientLight);
@@ -106,7 +103,24 @@ document.addEventListener('keydown', (e) => {
         if (dirLight) dirLight.intensity = isDay ? 1.0 : 0.2;
         console.log(`💡 Lighting: ${isDay ? 'Day' : 'Night'} mode`);
     }
+
+    // R = Reset camera to starting position
+    if (e.key === 'r' || e.key === 'R') {
+        camera.position.set(0, 1.6, 50);
+        console.log('📍 Camera reset to starting position');
+    }
+
+    // H = Toggle help overlay
+    if (e.key === 'h' || e.key === 'H') {
+        const help = document.getElementById('help-overlay');
+        if (help) {
+            help.style.display = help.style.display === 'none' ? 'block' : 'none';
+        }
+    }
 });
+
+// ---- LIGHTING STATE ----
+let isDay = true;
 
 // Resize handler
 window.addEventListener('resize', () => {
