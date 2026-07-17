@@ -165,15 +165,19 @@
     <script>
       // Welcome screen → Start Tour
       document.getElementById('start-btn').addEventListener('click', () => {
-        document.getElementById('welcome-screen').style.opacity = '0';
+        // 1. Lock Pointer Lock synchronously within the click gesture to avoid browser block
+        if (window.__controls) {
+          window.__controls.lock();
+        } else {
+          document.querySelector('#blocker').click();
+        }
+
+        // 2. Animate the welcome screen fade out in parallel
+        const welcomeScreen = document.getElementById('welcome-screen');
+        welcomeScreen.style.opacity = '0';
         setTimeout(() => {
-          document.getElementById('welcome-screen').style.display = 'none';
-          if (window.__controls) {
-            window.__controls.lock();
-          } else {
-            document.querySelector('#blocker').click();
-          }
-        }, 500);
+          welcomeScreen.style.display = 'none';
+        }, 1000); // 1000ms to perfectly match "transition: opacity 1s"
       });
 
       // Close info panel

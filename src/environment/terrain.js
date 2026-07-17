@@ -37,4 +37,6 @@ export function setupTerrain(scene) {
     // Center it where the path ends
     plot.position.set(0, 5, -30); 
     scene.add(plot);
+
+    return plot;
 }

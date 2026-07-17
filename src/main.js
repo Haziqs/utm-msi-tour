@@ -1,14 +1,13 @@
-/**
- * FILE: src/main.js
- * PURPOSE: Entry point for the 3D scene.
- */
-
 import * as THREE from 'three';
 import { setupScene } from './core/scene.js';
 import { setupTerrain } from './environment/terrain.js';
 import { setupMovement, updateMovement, setCollidables } from './controls/movement.js';
 import { loadModel } from './core/loaders.js';
 import { setupHotspots } from './interactions/hotspots.js';
+
+// ---- STATE MANAGEMENT ----
+let isDay = true; // Declared at the top to resolve temporal dead zone!
+let mosqueModel = null;
 
 // Setup renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -20,31 +19,37 @@ document.body.appendChild(renderer.domElement);
 // Setup core scene
 const { scene, camera } = setupScene();
 
-// Setup terrain
-setupTerrain(scene);
+// Setup terrain & capture plot wireframe
+const placeholderPlot = setupTerrain(scene);
 
 // Setup controls
 const controls = setupMovement(camera, document.body);
 scene.add(controls.getObject());
 
+window.__controls = controls;
+
 // ---- LOAD MOSQUE MODEL ----
-let mosqueModel = null;
 loadModel(
     '/models/masjidMSI.glb',
     (glb) => {
+        // Hide the yellow placeholder box once the actual mosque loads!
+        if (placeholderPlot) {
+            scene.remove(placeholderPlot); 
+        }
+
         mosqueModel = glb.scene;
         mosqueModel.scale.set(1, 1, 1);
         mosqueModel.position.set(0, 0, -30);
         scene.add(mosqueModel);
         console.log('✅ Mosque model loaded successfully!');
+
         const collidableMeshes = [];
         mosqueModel.traverse((child) => {
             if (child.isMesh) collidableMeshes.push(child);
         });
         setCollidables(collidableMeshes);
-        console.log(`✅ Collision enabled on ${collidableMeshes.length} mosque mesh(es)`);
 
-        const { addHotspot, clickableObjects } = setupHotspots(
+        const { addHotspot } = setupHotspots(
             scene,
             camera,
             renderer,
@@ -61,72 +66,73 @@ loadModel(
                 if (name.includes('mimbar')) {
                     addHotspot(child, {
                         title: '🕌 Mimbar',
-                        description: 'The mimbar is the pulpit where the imam delivers the Friday sermon (khutbah). It is an important focal point in the prayer hall.'
+                        description: 'The mimbar is the pulpit where the imam delivers the Friday sermon (khutbah).'
                     });
                 } else if (name.includes('charity') || name.includes('donation')) {
                     addHotspot(child, {
                         title: '💚 Charity Box',
-                        description: 'Donation boxes are placed around the mosque for worshippers to contribute to the mosque\'s maintenance and community programs.'
+                        description: 'Donation boxes are placed around the mosque for worshippers to contribute.'
                     });
                 } else if (name.includes('lectern') || name.includes('quran')) {
                     addHotspot(child, {
                         title: '📖 Quran Lectern',
-                        description: 'These lecterns hold copies of the Quran for worshippers to read during their visit. The Quran is the holy book of Islam.'
+                        description: 'These lecterns hold copies of the Quran for worshippers to read.'
                     });
                 } else if (name.includes('vending')) {
                     addHotspot(child, {
                         title: '🥤 Vending Machine',
-                        description: 'Vending machines are available for worshippers to purchase drinks and snacks. All proceeds go towards mosque maintenance.'
+                        description: 'Vending machines are available for worshippers to purchase drinks and snacks.'
                     });
                 } else if (name.includes('bench')) {
                     addHotspot(child, {
                         title: '🪑 Bench',
-                        description: 'Benches are placed around the mosque exterior for visitors to rest and enjoy the peaceful surroundings.'
+                        description: 'Benches are placed around the mosque exterior for visitors to rest.'
                     });
                 }
             }
         });
-
-        console.log('✅ Hotspots setup complete!');
     },
     undefined,
     (error) => {
-        console.error('❌ Error loading model:', error);
-        document.getElementById('info-title').textContent = '⚠️ Model Not Loaded';
-        document.getElementById('info-description').textContent = 'The mosque model could not be loaded. Please check that masjidMSI.glb exists in public/models/.';
-        document.getElementById('info-panel').style.display = 'block';
+        console.error('❌ Error:', error);
     }
 );
 
 // ---- KEYBOARD SHORTCUTS ----
 document.addEventListener('keydown', (e) => {
-    // L = Lighting toggle
+    // L = Lighting & Sky color toggle
     if (e.key === 'l' || e.key === 'L') {
         isDay = !isDay;
         const ambient = scene.children.find(c => c.isAmbientLight);
         const dirLight = scene.children.find(c => c.isDirectionalLight);
+        
+        const dayColor = new THREE.Color(0x87ceeb); // Sky blue
+        const nightColor = new THREE.Color(0x0b1128); // Deep midnight blue
+
         if (ambient) ambient.intensity = isDay ? 0.6 : 0.15;
         if (dirLight) dirLight.intensity = isDay ? 1.0 : 0.2;
+        
+        // Dynamically shift sky and fog colors
+        scene.background = isDay ? dayColor : nightColor;
+        if (scene.fog) scene.fog.color = isDay ? dayColor : nightColor;
+
         console.log(`💡 Lighting: ${isDay ? 'Day' : 'Night'} mode`);
     }
 
-    // R = Reset camera to starting position
+    // R = Reset camera
     if (e.key === 'r' || e.key === 'R') {
         camera.position.set(0, 1.6, 50);
-        console.log('📍 Camera reset to starting position');
     }
 
-    // H = Toggle help overlay
+    // H = Toggle help overlay (fixed double-tap issue)
     if (e.key === 'h' || e.key === 'H') {
         const help = document.getElementById('help-overlay');
         if (help) {
-            help.style.display = help.style.display === 'none' ? 'block' : 'none';
+            const isHidden = window.getComputedStyle(help).display === 'none';
+            help.style.display = isHidden ? 'block' : 'none';
         }
     }
 });
-
-// ---- LIGHTING STATE ----
-let isDay = true;
 
 // Resize handler
 window.addEventListener('resize', () => {
