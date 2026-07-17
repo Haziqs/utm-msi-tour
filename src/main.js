@@ -26,6 +26,8 @@ const placeholderPlot = setupTerrain(scene);
 const controls = setupMovement(camera, document.body);
 scene.add(controls.getObject());
 
+window.__controls = controls;
+
 // ---- LOAD MOSQUE MODEL ----
 loadModel(
     '/models/masjidMSI.glb',
