@@ -1,60 +1,85 @@
-/**
- * FILE: src/interactions/hotspots.js
- * PURPOSE: Clickable hotspots that show information pop-ups.
- */
-
 import * as THREE from 'three';
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-let hoveredObject = null;
 
 export function setupHotspots(scene, camera, renderer, infoCallback) {
-    // Store clickable objects with their info data
     const clickableObjects = [];
 
-    // Function to add a clickable object
     function addHotspot(object, infoData) {
         object.userData.isHotspot = true;
         object.userData.info = infoData;
         clickableObjects.push(object);
     }
 
-    // Click handler
-    renderer.domElement.addEventListener('click', (event) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    function isPointerLocked() {
+        return !!document.pointerLockElement;
+    }
 
+    function checkIntersection() {
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(clickableObjects, true);
-
         if (intersects.length > 0) {
             let obj = intersects[0].object;
-            // Traverse up to find parent with hotspot data
             while (obj && !obj.userData.isHotspot) {
                 obj = obj.parent;
             }
             if (obj && obj.userData.isHotspot) {
-                infoCallback(obj.userData.info);
+                const info = obj.userData.info;
+                if (info.condition && !info.condition(intersects[0].point)) {
+                    return null;
+                }
+                return { object: obj, point: intersects[0].point };
             }
+        }
+        return null;
+    }
+
+    const crosshair = document.getElementById('crosshair');
+    if (!crosshair) {
+        console.warn('⚠️ #crosshair element not found in HTML — crosshair color change will not work.');
+    }
+
+    // Click handler — use mousedown on document because 'click' is
+    // consumed by PointerLock for lock/unlock and never reaches the canvas.
+    document.addEventListener('mousedown', (event) => {
+        if (event.button !== 0) return; // left-click only
+
+        if (isPointerLocked()) {
+            pointer.x = 0;
+            pointer.y = 0;
+        } else {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        const hit = checkIntersection();
+        if (hit) {
+            // Exit pointer lock so user can interact with the info panel
+            if (isPointerLocked()) document.exitPointerLock();
+            infoCallback(hit.object.userData.info, hit.point);
         }
     });
 
-    // Hover effect
+    // Locked mode: crosshair turns active when looking at a hotspot
+    document.addEventListener('mousemove', () => {
+        if (!isPointerLocked()) return;
+        pointer.x = 0;
+        pointer.y = 0;
+        const hit = checkIntersection();
+        if (crosshair) crosshair.classList.toggle('active', !!hit);
+    });
+
+    // Unlocked mode: cursor pointer/default on hover
     renderer.domElement.addEventListener('mousemove', (event) => {
+        if (isPointerLocked()) return;
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(clickableObjects, true);
-
-        if (intersects.length > 0) {
-            renderer.domElement.style.cursor = 'pointer';
-        } else {
-            renderer.domElement.style.cursor = 'default';
-        }
+        const hit = checkIntersection();
+        renderer.domElement.style.cursor = hit ? 'pointer' : 'default';
     });
 
     return { addHotspot, clickableObjects };
