@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { setupScene } from './core/scene.js';
 import { setupTerrain } from './environment/terrain.js';
-import { setupMovement, updateMovement } from './controls/movement.js';
+import { setupMovement, updateMovement, setCollidables } from './controls/movement.js';
 import { loadModel } from './core/loaders.js';
 import { setupHotspots } from './interactions/hotspots.js';
 
@@ -37,6 +37,12 @@ loadModel(
         mosqueModel.position.set(0, 0, -30);
         scene.add(mosqueModel);
         console.log('✅ Mosque model loaded successfully!');
+        const collidableMeshes = [];
+        mosqueModel.traverse((child) => {
+            if (child.isMesh) collidableMeshes.push(child);
+        });
+        setCollidables(collidableMeshes);
+        console.log(`✅ Collision enabled on ${collidableMeshes.length} mosque mesh(es)`);
 
         const { addHotspot, clickableObjects } = setupHotspots(
             scene,
