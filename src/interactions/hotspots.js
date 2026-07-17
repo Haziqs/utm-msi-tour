@@ -1,12 +1,7 @@
-/**
- * FILE: src/interactions/hotspots.js
- * PURPOSE: Clickable hotspots that show information pop-ups.
- */
-
 import * as THREE from 'three';
 
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2(0, 0); // Always center for PointerLock
+const pointer = new THREE.Vector2();
 
 export function setupHotspots(scene, camera, renderer, infoCallback) {
     const clickableObjects = [];
@@ -17,7 +12,19 @@ export function setupHotspots(scene, camera, renderer, infoCallback) {
         clickableObjects.push(object);
     }
 
-    function checkIntersection() {
+    // Click handler
+    renderer.domElement.addEventListener('click', (event) => {
+        // If Pointer Lock is active, the cursor is locked inside.
+        // We force the raycast directly through the center (0, 0)
+        if (window.__controls && window.__controls.isLocked) {
+            pointer.x = 0;
+            pointer.y = 0;
+        } else {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(clickableObjects, true);
         if (intersects.length > 0) {
@@ -36,30 +43,17 @@ export function setupHotspots(scene, camera, renderer, infoCallback) {
         return null;
     }
 
-    document.addEventListener('mousedown', (event) => {
-        // Only trigger if PointerLock is active and it's a left click (button 0)
-        if (document.pointerLockElement && event.button === 0) {
-            const hit = checkIntersection();
-            if (hit) {
-                // Exit pointer lock when opening info panel for better UX
-                document.exitPointerLock();
-                infoCallback(hit.object.userData.info, hit.point);
-            }
-        }
-    });
+    // Hover effect (only applies when unlocked)
+    renderer.domElement.addEventListener('mousemove', (event) => {
+        if (window.__controls && window.__controls.isLocked) return;
+
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     const crosshair = document.getElementById('crosshair');
 
-    // In PointerLock, mousemove is fired when looking around
-    document.addEventListener('mousemove', () => {
-        if (document.pointerLockElement) {
-            const obj = checkIntersection();
-            if (obj && crosshair) {
-                crosshair.classList.add('active');
-            } else if (crosshair) {
-                crosshair.classList.remove('active');
-            }
-        }
+        renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'default';
     });
 
     return { addHotspot, clickableObjects };
