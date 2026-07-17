@@ -27,17 +27,21 @@ export function setupHotspots(scene, camera, renderer, infoCallback) {
 
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(clickableObjects, true);
-
         if (intersects.length > 0) {
             let obj = intersects[0].object;
             while (obj && !obj.userData.isHotspot) {
                 obj = obj.parent;
             }
             if (obj && obj.userData.isHotspot) {
-                infoCallback(obj.userData.info);
+                const info = obj.userData.info;
+                if (info.condition && !info.condition(intersects[0].point)) {
+                    return null; // Skip if condition fails
+                }
+                return { object: obj, point: intersects[0].point };
             }
         }
-    });
+        return null;
+    }
 
     // Hover effect (only applies when unlocked)
     renderer.domElement.addEventListener('mousemove', (event) => {
@@ -47,8 +51,7 @@ export function setupHotspots(scene, camera, renderer, infoCallback) {
         pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(clickableObjects, true);
+    const crosshair = document.getElementById('crosshair');
 
         renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'default';
     });
