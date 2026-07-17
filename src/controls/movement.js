@@ -68,6 +68,9 @@ export function setupMovement(camera, domElement) {
     controls.addEventListener('lock', () => {
         instructions.style.display = 'none';
         blocker.style.display = 'none';
+        // Hide info panel if it's open when user clicks to lock again
+        const infoPanel = document.getElementById('info-panel');
+        if (infoPanel) infoPanel.style.display = 'none';
     });
 
     controls.addEventListener('unlock', () => {

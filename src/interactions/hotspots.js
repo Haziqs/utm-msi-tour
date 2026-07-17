@@ -6,54 +6,59 @@
 import * as THREE from 'three';
 
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
-let hoveredObject = null;
+const pointer = new THREE.Vector2(0, 0); // Always center for PointerLock
 
 export function setupHotspots(scene, camera, renderer, infoCallback) {
-    // Store clickable objects with their info data
     const clickableObjects = [];
 
-    // Function to add a clickable object
     function addHotspot(object, infoData) {
         object.userData.isHotspot = true;
         object.userData.info = infoData;
         clickableObjects.push(object);
     }
 
-    // Click handler
-    renderer.domElement.addEventListener('click', (event) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
+    function checkIntersection() {
         raycaster.setFromCamera(pointer, camera);
         const intersects = raycaster.intersectObjects(clickableObjects, true);
-
         if (intersects.length > 0) {
             let obj = intersects[0].object;
-            // Traverse up to find parent with hotspot data
             while (obj && !obj.userData.isHotspot) {
                 obj = obj.parent;
             }
             if (obj && obj.userData.isHotspot) {
-                infoCallback(obj.userData.info);
+                const info = obj.userData.info;
+                if (info.condition && !info.condition(intersects[0].point)) {
+                    return null; // Skip if condition fails
+                }
+                return { object: obj, point: intersects[0].point };
+            }
+        }
+        return null;
+    }
+
+    document.addEventListener('mousedown', (event) => {
+        // Only trigger if PointerLock is active and it's a left click (button 0)
+        if (document.pointerLockElement && event.button === 0) {
+            const hit = checkIntersection();
+            if (hit) {
+                // Exit pointer lock when opening info panel for better UX
+                document.exitPointerLock();
+                infoCallback(hit.object.userData.info, hit.point);
             }
         }
     });
 
-    // Hover effect
-    renderer.domElement.addEventListener('mousemove', (event) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    const crosshair = document.getElementById('crosshair');
 
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(clickableObjects, true);
-
-        if (intersects.length > 0) {
-            renderer.domElement.style.cursor = 'pointer';
-        } else {
-            renderer.domElement.style.cursor = 'default';
+    // In PointerLock, mousemove is fired when looking around
+    document.addEventListener('mousemove', () => {
+        if (document.pointerLockElement) {
+            const obj = checkIntersection();
+            if (obj && crosshair) {
+                crosshair.classList.add('active');
+            } else if (crosshair) {
+                crosshair.classList.remove('active');
+            }
         }
     });
 
