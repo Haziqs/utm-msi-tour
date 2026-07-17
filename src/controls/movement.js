@@ -23,6 +23,33 @@ const sprintMultiplier = 2.8;
 const verticalSpeed = 20.0;
 const BOUNDARY = 240;
 
+// ---- COLLISION STATE ----
+
+let collidableObjects = [];
+const COLLISION_RADIUS = 1.5;
+const collisionRaycaster = new THREE.Raycaster();
+export function setCollidables(objects) {
+    collidableObjects = objects;
+}
+function resolveAxisMove(from, to) {
+    if (collidableObjects.length === 0) return to;
+
+    const movement = new THREE.Vector3().subVectors(to, from);
+    const distance = movement.length();
+    if (distance < 1e-5) return to;
+
+    const dir = movement.clone().normalize();
+    collisionRaycaster.set(from, dir);
+    collisionRaycaster.near = 0;
+    collisionRaycaster.far = distance + COLLISION_RADIUS;
+
+    const hits = collisionRaycaster.intersectObjects(collidableObjects, true);
+    if (hits.length > 0 && hits[0].distance < distance + COLLISION_RADIUS) {
+        const safeDistance = Math.max(hits[0].distance - COLLISION_RADIUS, 0);
+        return from.clone().addScaledVector(dir, safeDistance);
+    }
+    return to;
+}
 export function setupMovement(camera, domElement) {
     controls = new PointerLockControls(camera, domElement);
     window.__controls = controls;
@@ -134,8 +161,16 @@ export function updateMovement(delta, camera) {
     if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
     if (moveLeft || moveRight) velocity.x -= direction.x * currentSpeed * delta;
 
+
+    let beforeStep = camera.position.clone();
     controls.moveRight(-velocity.x * delta);
+    let afterStep = resolveAxisMove(beforeStep, camera.position.clone());
+    camera.position.copy(afterStep);
+
+    beforeStep = camera.position.clone();
     controls.moveForward(-velocity.z * delta);
+    afterStep = resolveAxisMove(beforeStep, camera.position.clone());
+    camera.position.copy(afterStep);
 
     // Vertical movement (SPACE = UP, SHIFT = DOWN) — No gravity
     if (moveUp) {
@@ -151,3 +186,4 @@ export function updateMovement(delta, camera) {
     if (camera.position.z > BOUNDARY) camera.position.z = BOUNDARY;
     if (camera.position.z < -BOUNDARY) camera.position.z = -BOUNDARY;
 }
+
